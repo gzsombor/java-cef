@@ -1,0 +1,144 @@
+version: 2
+
+jobs:
+  linux64:
+
+    machine: true
+
+    environment:
+      - JAVA_HOME: /usr/lib/jvm/jdk1.8.0
+
+    steps:
+
+      - checkout
+
+      - run:
+          # The `jcef_build` directory name is required by other JCEF tooling  and should not be changed.
+          name: Create and enter the `jcef_build` directory.
+          command: mkdir jcef_build
+
+      - run:
+          name: Generate 64-bit Unix Makefiles.
+          working_directory: jcef_build
+          command: cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+
+      - run:
+          name: Build using Make.
+          working_directory: jcef_build
+          command: make -j4
+
+      - run:
+          name: Build the JCEF Java classes.
+          working_directory: tools
+          command: ./compile.sh linux64
+
+      - run:
+          name: Make distribution
+          working_directory: tools
+          command: ./make_distrib.sh linux64
+
+      - run:
+          name: Create distribution archive
+          working_directory: binary_distrib
+          command: tar -zcf jcef-linux64-distribution.tar.gz linux64
+
+      - store_artifacts:
+          path: binary_distrib
+
+  linux32:
+
+    machine: true
+
+    environment:
+      - JAVA_HOME: /usr/lib/jvm/jdk1.8.0
+      - CFLAGS: -m32
+
+    steps:
+
+      - run:
+          name: Add multi-arch support
+          command: sudo dpkg --add-architecture i386; sudo apt-get update; sudo apt-get install gcc-multilib g++-multilib libx11-dev:i386
+
+      - checkout
+
+      - run:
+          # The `jcef_build` directory name is required by other JCEF tooling and should not be changed.
+          name: Create and enter the `jcef_build` directory.
+          command: mkdir jcef_build
+
+      - run:
+          name: Generate 32-bit Unix Makefiles.
+          working_directory: jcef_build
+          command: cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32 .. 
+
+      - run:
+          name: Build using Make.
+          working_directory: jcef_build
+          command: make -j4
+
+      - run:
+          name: Build the JCEF Java classes.
+          working_directory: tools
+          command: ./compile.sh linux32
+
+      - run:
+          name: Make distribution
+          working_directory: tools
+          command: ./make_distrib.sh linux32
+
+      - run:
+          name: Create distribution archive
+          working_directory: binary_distrib
+          command: tar -zcf jcef-linux32-distribution.tar.gz linux32
+
+      - store_artifacts:
+          path: binary_distrib
+
+  macos:
+
+    machine:
+      xcode:
+        version: 8.2
+
+    environment:
+      - JAVA_HOME: /usr/lib/jvm/jdk1.8.0
+
+    steps:
+
+      - checkout
+
+      - run:
+          # The `jcef_build` directory name is required by other JCEF tooling  and should not be changed.
+          name: Create and enter the `jcef_build` directory.
+          command: mkdir jcef_build
+
+      - run:
+          name: Generate 64-bit Xcode project files..
+          working_directory: jcef_build
+          command: cmake -G "Xcode" -DPROJECT_ARCH="x86_64" ..
+
+      - run:
+          name: Build using xcodebuild.
+          working_directory: jcef_build
+          command: xcodebuild
+
+      - run:
+          name: Make distribution
+          working_directory: tools
+          command: ./make_distrib.sh macos
+
+      - run:
+          name: Create distribution archive
+          working_directory: binary_distrib
+          command: tar -zcf jcef-macos-distribution.tar.gz macos
+
+      - store_artifacts:
+          path: binary_distrib
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - linux64
+      - linux32
+      - macos

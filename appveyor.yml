@@ -52,3 +52,16 @@ after_build:
 artifacts:
   - path: binary_distrib\jcef-%buildType%-distribution.zip
     name: jcef-%buildType%-distribution
+
+deploy:
+  description: 'Automated release of the Java Chromium Embedded Framework based on source code in tag $(APPVEYOR_REPO_TAG_NAME).'
+  provider: GitHub
+  auth_token:
+    secure: Qzp7COoye1K4zRA1krCBZ4Xosn2SJ4XQfjfHLkbqEvLQ734LAwZP+SuHXCLt1dR3
+  artifact: jcef-%buildType%-distribution
+  draft: false
+  prerelease: false
+  on:
+    branch: master
+    appveyor_repo_tag: true # deploy on tag push only
+
